@@ -1,0 +1,13 @@
+flask
+pandas
+numpy
+scipy
+scikit-learn
+joblib
+nltk
+matplotlib
+nbformat
+nbconvert
+nbclient
+ipykernel
+jupyter

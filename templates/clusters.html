@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Clusters - Visualisation 2D{% endblock %}
+
+{% block content %}
+
+<!-- En-tête subtil et clair -->
+<section class="text-center py-12 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border-b border-gray-200 dark:border-gray-800">
+    <div class="max-w-6xl mx-auto px-6">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4">
+            Visualisation des Clusters
+        </h1>
+        <p class="text-lg text-gray-600 dark:text-gray-300 max-w-4xl mx-auto">
+            Projection 2D interactive des documents (réduction de dimensionnalité)
+        </p>
+    </div>
+</section>
+
+<!-- Contenu principal -->
+<div class="max-w-7xl mx-auto px-6 py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
+        <!-- Panneau latéral gauche : Contrôles (allégé et clair) -->
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-8">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-3">
+                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    Options de visualisation
+                </h3>
+                
+                <label for="dim-method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-6 mb-2">
+                    Méthode de réduction
+                </label>
+                <select id="dim-method" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                    <option value="pca">PCA (rapide, structure globale)</option>
+                    <option value="tsne">t-SNE (meilleure séparation des clusters)</option>
+                </select>
+            </div>
+
+            <!-- Légende clusters (très claire) -->
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Clusters actifs</h4>
+                <div id="legend" class="space-y-3"></div>
+            </div>
+
+            <!-- Indicateurs qualité (discrets) -->
+            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Qualité du clustering</h4>
+                <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p>Taille moyenne cluster : <span id="avg-size" class="font-medium text-gray-900 dark:text-white">--</span></p>
+                    <p>Nombre de clusters : <span id="nb-clusters" class="font-medium text-gray-900 dark:text-white">5</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone graphique principale (grande, lumineuse, contrastée) -->
+        <div class="lg:col-span-3 bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div id="clusterPlot" class="w-full h-[70vh] min-h-[600px] rounded-xl"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Infos complémentaires -->
+<div class="max-w-6xl mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-gray-800">
+    <p>Survolez un point pour voir le titre, le thème et un extrait du document.</p>
+    <p class="mt-2">Utilisez la molette pour zoomer/dézoomer et déplacez-vous avec la souris.</p>
+</div>
+
+<!-- Script Plotly avancé (couleurs harmonisées pour light mode) -->
+<script>
+    let currentPlotData = null;
+
+    fetch('/api/clusters')
+        .then(r => r.json())
+        .then(data => {
+            currentPlotData = data;
+
+            // Palette douce et accessible (pour mode clair)
+            const palette = [
+                '#4f46e5', '#7c3aed', '#ec4899', '#14b8a6', '#f59e0b'  // Indigo, violet, rose, teal, orange doux
+            ];
+
+            // Générer légende interactive
+            const legend = document.getElementById('legend');
+            const uniqueClusters = [...new Set(data.clusters)];
+            uniqueClusters.forEach((clusterId, index) => {
+                const color = palette[index % palette.length];
+                const label = document.createElement('div');
+                label.className = 'flex items-center gap-3 cursor-pointer group';
+                label.innerHTML = `
+                    <div class="w-5 h-5 rounded-full border-2 transition" style="background-color: ${color}; border-color: ${color}40"></div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition">Cluster ${clusterId}</span>
+                    <input type="checkbox" checked class="ml-auto accent-teal-500" data-cluster="${clusterId}">
+                `;
+                legend.appendChild(label);
+            });
+
+            // Événements
+            document.querySelectorAll('#legend input[type="checkbox"]').forEach(cb => cb.addEventListener('change', updatePlot));
+            document.getElementById('dim-method').addEventListener('change', updatePlot);
+
+            // Affichage initial
+            updatePlot();
+        });
+
+    function updatePlot() {
+        if (!currentPlotData) return;
+
+        const method = document.getElementById('dim-method').value;
+        const activeClusters = Array.from(document.querySelectorAll('#legend input:checked'))
+                                    .map(cb => parseInt(cb.dataset.cluster));
+
+        const filtered = { x: [], y: [], text: [], cluster: [] };
+        currentPlotData.x.forEach((x, i) => {
+            if (activeClusters.includes(currentPlotData.clusters[i])) {
+                filtered.x.push(x);
+                filtered.y.push(currentPlotData.y[i]);
+                filtered.text.push(`${currentPlotData.titles[i]}<br><small>Thème: ${currentPlotData.themes[i]}</small>`);
+                filtered.cluster.push(currentPlotData.clusters[i]);
+            }
+        });
+
+        const colors = filtered.cluster.map(c => {
+            const palette = ['#4f46e5', '#7c3aed', '#ec4899', '#14b8a6', '#f59e0b'];
+            return palette[c % palette.length];
+        });
+
+        const trace = {
+            x: filtered.x,
+            y: filtered.y,
+            mode: 'markers',
+            type: 'scatter',
+            text: filtered.text,
+            hoverinfo: 'text',
+            marker: {
+                size: 9,
+                color: colors,
+                opacity: 0.85,
+                line: { width: 1.5, color: 'white' }
+            }
+        };
+
+        Plotly.newPlot('clusterPlot', [trace], {
+            title: `Projection 2D des Documents (${method.toUpperCase()})`,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(255,255,255,0.05)',
+            font: { color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#1f2937' },
+            margin: { l: 60, r: 40, t: 80, b: 60 },
+            hovermode: 'closest',
+            showlegend: false,
+            grid: { rows: 1, columns: 1 }
+        });
+    }
+</script>
+
+{% endblock %}

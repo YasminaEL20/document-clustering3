@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+env/
+.venv/
+venv*/
+ENV/
+
+# Installer / pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IPython / Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+*.executed.ipynb
+
+# Notebook outputs
+*.nbconvert.ipynb
+
+# Data and ML artefacts (do not commit large models / generated matrices)
+data/*.pkl
+data/*.npz
+data/*.npy
+# If you want to keep raw CSVs, uncomment the next line
+# data/*.csv
+
+# Logs
+*.log
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test / cache
+.pytest_cache/
+.mypy_cache/
+
+# Environment files
+.env
+.env.*
+
+# Misc
+*.swp
+~$
+
+# Node / JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build / bundler outputs
+dist/
+build/
+.next/
+.parcel-cache/
+
+# Lockfiles: keep `package-lock.json` or `yarn.lock` in repo (DO NOT IGNORE)

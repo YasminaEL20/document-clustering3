@@ -1,0 +1,6 @@
+body { font-family: Arial, sans-serif; margin: 20px; }
+nav { background: #f0f0f0; padding: 10px; }
+h1 { color: #333; }
+canvas, #clusterPlot { border: 1px solid #ddd; margin: 20px 0; }
+/* Ajoute des styles interactifs, e.g., hover effects */
+li:hover { background: #f9f9f9; }

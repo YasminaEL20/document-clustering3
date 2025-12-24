@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Statistiques - Analyse du Corpus{% endblock %}
+
+{% block content %}
+
+<!-- En-tête de page -->
+<div class="text-center mb-10">
+    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+        Analyse Statistique du Corpus
+    </h1>
+    <p class="text-xl text-gray-600 dark:text-gray-300 max-w-4xl mx-auto">
+        Synthèse descriptive et comparaison ground truth vs clustering K-Means
+    </p>
+</div>
+
+<!-- Cartes récapitulatives (KPI) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition">
+        <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Documents</p>
+        <p class="text-4xl font-bold text-blue-600 dark:text-blue-400 mt-2">{{ total_documents }}</p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition">
+        <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nombre de Clusters</p>
+        <p class="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">{{ nb_clusters }}</p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition">
+        <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Thème Dominant</p>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">{{ theme_dominant }}</p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition">
+        <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Couverture du Cluster Dominant</p>
+        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">{{ pourcentage_dominant }}%</p>
+    </div>
+</div>
+
+<!-- Section graphiques principaux -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+    <!-- Bar chart + Pie chart ground truth -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">
+            Distribution Réelle (Ground Truth)
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <canvas id="groundBarChart" class="w-full h-80 bg-white dark:bg-gray-900 rounded-lg"></canvas>
+            </div>
+            <div>
+                <canvas id="groundPieChart" class="w-full h-80 bg-white dark:bg-gray-900 rounded-lg"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bar chart + Pie chart clusters K-Means -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">
+            Distribution après Clustering (K-Means)
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <canvas id="clusterBarChart" class="w-full h-80 bg-white dark:bg-gray-900 rounded-lg"></canvas>
+            </div>
+            <div>
+                <canvas id="clusterPieChart" class="w-full h-80 bg-white dark:bg-gray-900 rounded-lg"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interprétation automatique + insights -->
+<div class="bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-8 mb-12 shadow-lg">
+    <h3 class="text-2xl font-bold text-indigo-800 dark:text-indigo-300 mb-4">
+        Interprétation des Résultats
+    </h3>
+    <div class="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+        <p><strong>Observation principale :</strong> {{ interpretation_principale }}</p>
+        <p>Le clustering K-Means a retrouvé des groupes très proches des catégories réelles. 
+           La catégorie dominante <strong>{{ theme_dominant }}</strong> représente {{ pourcentage_dominant }}% des documents.</p>
+        <p>La répartition montre une bonne homogénéité globale, avec un écart maximal de 
+           {{ ecart_max }}% entre ground truth et clusters.</p>
+    </div>
+</div>
+
+<!-- Boutons d'action / exploration -->
+<div class="flex flex-wrap justify-center gap-6">
+    <a href="/clusters" class="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-medium rounded-xl shadow-lg hover:bg-blue-700 transition transform hover:scale-105">
+        Explorer la visualisation 2D des clusters →
+    </a>
+    <a href="/search" class="inline-flex items-center px-8 py-4 bg-indigo-600 text-white font-medium rounded-xl shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">
+        Tester la recherche par similarité →
+    </a>
+</div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/stats.js') }}"></script>
+
+{% endblock %}

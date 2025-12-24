@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Clustering de Documents{% endblock %}</title>
+    
+    <!-- Tailwind compilé -->
+    <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+    
+    <!-- Flowbite JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+    
+    <!-- Chart.js & Plotly -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- Navbar fixe (adaptée light/dark) -->
+    <nav class="bg-white dark:bg-gray-950/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 fixed w-full z-50 top-0 start-0 shadow-sm">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-3">
+                    <span class="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                        Document Clustering
+                    </span>
+                </a>
+
+                <!-- Navigation desktop -->
+                <div class="hidden md:flex items-center space-x-10">
+                    {% set nav_items = [
+                        ('/', 'Accueil'),
+                        ('/stats', 'Statistiques'),
+                        ('/clusters', 'Clusters'),
+                        ('/search', 'Recherche')
+                    ] %}
+                    {% for path, label in nav_items %}
+                    <a href="{{ path }}"
+                       class="{% if request.path == path %}text-teal-600 dark:text-teal-400 font-bold text-lg border-b-2 border-teal-600 dark:border-teal-400 pb-1{% else %}text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition font-medium{% endif %}">
+                        {{ label }}
+                    </a>
+                    {% endfor %}
+                </div>
+
+                <!-- Dark/Light + Mobile -->
+                <div class="flex items-center space-x-4">
+                    <!-- Dark/Light -->
+                    <button id="theme-toggle" type="button" 
+                            class="p-2.5 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <svg id="sun-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg id="moon-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
+
+                    <!-- Hamburger -->
+                    <button id="mobile-menu-button" type="button" 
+                            class="md:hidden p-2 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Menu mobile -->
+            <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800">
+                <div class="px-4 py-6 space-y-4">
+                    {% for path, label in nav_items %}
+                    <a href="{{ path }}"
+                       class="{% if request.path == path %}block px-3 py-2 text-base font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 rounded-lg{% else %}block px-3 py-2 text-base font-medium text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-400 transition{% endif %}">
+                        {{ label }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal (fond adapté clair/sombre) -->
+    <main class="flex-grow pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 py-6 text-center text-sm text-gray-600 dark:text-gray-400">
+        Projet Clustering de Documents - 2025
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Mobile menu
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+
+        // Dark/Light toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const sunIcon = document.getElementById('sun-icon');
+        const moonIcon = document.getElementById('moon-icon');
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+        });
+    </script>
+</body>
+</html>
