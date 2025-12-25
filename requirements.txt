@@ -11,3 +11,4 @@ nbconvert
 nbclient
 ipykernel
 jupyter
+gunicorn
