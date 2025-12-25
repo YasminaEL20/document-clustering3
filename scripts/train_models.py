@@ -77,3 +77,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     train_and_save(k=args.k, out_dir=args.out)
+
+# ce fichier est important
