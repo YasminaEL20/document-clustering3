@@ -29,11 +29,10 @@ pip-delete-this-directory.txt
 *.nbconvert.ipynb
 
 # Data and ML artefacts (do not commit large models / generated matrices)
-data/*.pkl
-data/*.npz
-data/*.npy
-# If you want to keep raw CSVs, uncomment the next line
-# data/*.csv
+# Removed specific ignores for files under `data/` to allow pushing raw dataset files.
+# Previously ignored patterns (data/*.pkl, data/*.npz, data/*.npy) were removed so
+# that files in the `data/` folder can be committed and pushed. Be cautious of
+# large binary files (>100MB) which GitHub won't accept — use Git LFS if needed.
 
 # Logs
 *.log
