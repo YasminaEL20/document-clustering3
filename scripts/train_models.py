@@ -54,10 +54,10 @@ def train_and_save(k=5, out_dir='data'):
     vectorizer = TfidfVectorizer(
         max_df=0.9,
         min_df=5,
-        max_features=3000,      # 🔴 CRUCIAL
-        ngram_range=(1, 1),     # 🔴 UNIGRAMS SEULEMENT
+        max_features=3000,      
+        ngram_range=(1, 1),     
         stop_words='english',
-        dtype=np.float32        # 🔴 RAM ÷ 2
+        dtype=np.float32       
     )
 
     print("Entraînement du TF-IDF...")
