@@ -3,44 +3,61 @@ import joblib
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.decomposition import PCA  # Tu pourras changer pour t-SNE plus tard
 
 app = Flask(__name__)
 
-# Charger les modèles et données au démarrage (une seule fois)
-model = joblib.load('data/model.pkl')           # KMeans entraîné
-vectorizer = joblib.load('data/tfidf_vectorizer.pkl')
-documents = joblib.load('data/documents.pkl')   # Liste de dicts
-tfidf_matrix = joblib.load('data/tfidf_matrix.pkl')  # Matrice pré-calculée (optimisation)
-labels = model.labels_                          # Labels des clusters
+# =========================================================
+# 🔹 CHARGEMENTS GLOBAUX (UNE SEULE FOIS AU DÉMARRAGE)
+# =========================================================
 
-# --- Calculs globaux pour la page stats (effectués une fois au démarrage) ---
+# Modèle K-Means
+model = joblib.load('data/model.pkl')
+
+# Vectoriseur TF-IDF
+vectorizer = joblib.load('data/tfidf_vectorizer.pkl')
+
+# Documents (liste de dicts)
+documents = joblib.load('data/documents.pkl')
+
+# Matrice TF-IDF (SPARSE, NE PAS CONVERTIR EN ARRAY)
+tfidf_matrix = joblib.load('data/tfidf_matrix.pkl')
+
+# Labels des clusters
+labels = model.labels_
+
+# PCA 2D PRÉ-CALCULÉ (IMPORTANT : pas de PCA ici)
+reduced_2d = joblib.load('data/pca_2d.pkl')
+
+# =========================================================
+# 🔹 STATISTIQUES GLOBALES (calculées UNE FOIS)
+# =========================================================
+
 total_documents = len(documents)
 nb_clusters = len(set(labels))
 
-# Ground truth : distribution par thème réel
 theme_series = pd.Series([doc['theme'] for doc in documents])
 theme_counts = theme_series.value_counts()
 theme_dominant = theme_counts.idxmax()
 pourcentage_dominant = (theme_counts.max() / total_documents) * 100
 
-# Clusters : distribution par cluster prédit
 cluster_series = pd.Series(labels)
 cluster_counts = cluster_series.value_counts()
 
-# Interprétation automatique simple (tu pourras l'enrichir)
 interpretation_principale = (
     f"Le clustering K-Means a identifié {nb_clusters} groupes, proches des catégories réelles du corpus BBC. "
-    f"La catégorie dominante est **{theme_dominant}** avec {pourcentage_dominant:.1f}% des documents. "
+    f"La catégorie dominante est {theme_dominant} avec {pourcentage_dominant:.1f}% des documents. "
     "La répartition montre une bonne cohérence globale entre les thèmes réels et les clusters découverts."
 )
 
-# Route d'accueil
+# =========================================================
+# 🔹 ROUTES
+# =========================================================
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Route page Statistiques (avec tous les KPI)
+
 @app.route('/stats')
 def stats():
     return render_template(
@@ -52,53 +69,62 @@ def stats():
         interpretation_principale=interpretation_principale
     )
 
-# API pour les données des graphiques (bar + pie)
+
 @app.route('/api/stats')
 def api_stats():
     return jsonify({
-        # Ground truth (thèmes réels)
         'themes_labels': theme_counts.index.tolist(),
         'themes_values': theme_counts.values.tolist(),
-        
-        # Clusters K-Means
         'clusters_labels': [f"Cluster {i}" for i in cluster_counts.index],
         'clusters_values': cluster_counts.values.tolist()
     })
 
-# Route page Clusters
+
 @app.route('/clusters')
 def clusters():
     return render_template('clusters.html')
 
-# API pour la visualisation 2D
+
+# =========================================================
+# 🔹 API CLUSTERS 2D (SANS PCA, SANS CALCUL)
+# =========================================================
 @app.route('/api/clusters')
 def api_clusters():
-    # Réduction 2D (PCA ici, tu peux passer à t-SNE plus tard)
-    pca = PCA(n_components=2)
-    reduced = pca.fit_transform(tfidf_matrix.toarray())
-    
-    data = {
-        'x': reduced[:, 0].tolist(),
-        'y': reduced[:, 1].tolist(),
+    return jsonify({
+        'x': reduced_2d[:, 0].tolist(),
+        'y': reduced_2d[:, 1].tolist(),
         'titles': [doc['titre'] for doc in documents],
-        'contents': [doc['contenu'][:150] + '...' for doc in documents],  # extrait plus long
-        'themes': [doc['theme'] for doc in documents],  # pour colorer par thème réel
-        'clusters': labels.tolist()                     # pour colorer par cluster
-    }
-    return jsonify(data)
+        'contents': [doc['contenu'][:150] + '...' for doc in documents],
+        'themes': [doc['theme'] for doc in documents],
+        'clusters': labels.tolist()
+    })
 
-# Route Recherche (déjà bien, juste un petit nettoyage)
+
+# =========================================================
+# 🔹 RECHERCHE (OPTIMISÉE MÉMOIRE)
+# =========================================================
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     if request.method == 'POST':
         query = request.form.get('query', '').strip()
+
         if not query:
-            return render_template('search.html', results=[], error="Veuillez entrer une requête.")
-        
+            return render_template(
+                'search.html',
+                results=[],
+                error="Veuillez entrer une requête."
+            )
+
         query_vec = vectorizer.transform([query])
-        similarities = cosine_similarity(query_vec, tfidf_matrix).flatten()
-        top_indices = np.argsort(similarities)[-8:][::-1]  # Top 8 au lieu de 5
-        
+
+        similarities = cosine_similarity(
+            query_vec,
+            tfidf_matrix,
+            dense_output=False
+        ).flatten()
+
+        top_indices = np.argsort(similarities)[-8:][::-1]
+
         results = [
             {
                 'titre': documents[i]['titre'],
@@ -106,12 +132,20 @@ def search():
                 'similarity': round(float(similarities[i]), 3),
                 'theme': documents[i]['theme']
             }
-            for i in top_indices if similarities[i] > 0.05  # seuil minimal pour éviter bruit
+            for i in top_indices if similarities[i] > 0.05
         ]
-        
-        return render_template('search.html', results=results, query=query)
-    
+
+        return render_template(
+            'search.html',
+            results=results,
+            query=query
+        )
+
     return render_template('search.html', results=[])
 
+
+# =========================================================
+# 🔹 LANCEMENT LOCAL (PAS UTILISÉ PAR RENDER)
+# =========================================================
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000)
